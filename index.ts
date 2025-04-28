@@ -5,12 +5,10 @@ if (token === undefined) {
   throw new Error("BOT_TOKEN must be provided!");
 }
 
-interface SessionData {
-  currentNodeId: number;
-}
-
 interface MyContext extends Context {
-  session: SessionData;
+  session: {
+    currentNodeId: number;
+  };
 }
 
 type Leaf = {
@@ -596,19 +594,13 @@ const _tree: Leaf = {
   ],
 };
 
+// Функция для назначения последовательных id узлам дерева
 function assignSequentialIds(tree: Leaf): Leaf {
-  // Counter for sequential IDs
   let counter = 0;
 
-  // Recursive function to traverse and assign IDs
   const traverse = (node: Leaf): Leaf => {
-    // Create a new node with the current ID
-    const newNode = {
-      ...node,
-      id: counter++,
-    };
+    const newNode = { ...node, id: counter++ };
 
-    // If the node has children, recursively assign IDs to them
     if (node.children?.length) {
       newNode.children = node.children.map((child) => traverse(child));
     }
@@ -618,8 +610,6 @@ function assignSequentialIds(tree: Leaf): Leaf {
 
   return traverse(tree);
 }
-
-const tree = assignSequentialIds(_tree);
 
 // Вспомогательная функция для поиска узла
 function findNodeById(tree: Leaf, targetId: number): Leaf | null {
@@ -634,6 +624,8 @@ function findNodeById(tree: Leaf, targetId: number): Leaf | null {
 
   return null;
 }
+
+const tree = assignSequentialIds(_tree);
 
 const bot = new Telegraf<MyContext>(token);
 
@@ -673,7 +665,6 @@ async function handleNode(ctx: MyContext, node: Leaf) {
   }
 }
 
-// Обработчик текстовых сообщений
 bot.on("text", async (ctx) => {
   const currentNode = findNodeById(tree, ctx.session.currentNodeId);
 
@@ -682,7 +673,6 @@ bot.on("text", async (ctx) => {
     return;
   }
 
-  // Ищем выбранную кнопку среди детей текущего узла
   const selected = currentNode.children.find(
     (child) =>
       child.type === "button" &&
@@ -696,7 +686,6 @@ bot.on("text", async (ctx) => {
     return;
   }
 
-  // Переходим к выбранному узлу
   await handleNode(ctx, selected);
 });
 
